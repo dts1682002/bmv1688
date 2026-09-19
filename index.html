@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科學特工：電流急急棒 (完整版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', 'Inter', sans-serif; user-select: none; }
+        canvas { touch-action: none; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); }
+        .glow-text { text-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+        .glow-box { box-shadow: 0 0 25px rgba(56, 189, 248, 0.25); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-xl">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 font-black p-2.5 rounded-2xl text-xl shadow-lg animate-pulse">⚡</div>
+                <div>
+                    <h1 class="text-xl font-black text-amber-400 glow-text">科學特工：電流急急棒</h1>
+                    <p class="text-xs text-slate-400">國中七年級自然科學冒險特訓</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openLeaderboard()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
+                    🏆 排行榜
+                </button>
+                <button onclick="openGuide()" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
+                    📖 遊戲說明
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center">
+        
+        <!-- HUD Status Bar -->
+        <div class="w-full max-w-4xl flex flex-wrap justify-between items-center bg-slate-900/80 backdrop-blur px-6 py-3 rounded-2xl mb-4 border border-slate-800 shadow-lg">
+            <div class="flex items-center gap-6">
+                <div class="flex flex-col">
+                    <span class="text-xs text-slate-400">生命防護</span>
+                    <span id="hud-lives" class="text-red-400 text-lg font-bold tracking-wider">❤️❤️❤️</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xs text-slate-400">特工等級</span>
+                    <span id="hud-level" class="text-amber-400 text-sm font-black">第 1 關 (基礎導線)</span>
+                </div>
+                <div class="flex flex-col hidden sm:flex">
+                    <span class="text-xs text-slate-400">能源護盾</span>
+                    <span id="hud-shield" class="text-cyan-400 text-sm font-bold">無</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col text-right">
+                    <span class="text-xs text-slate-400">特訓計時</span>
+                    <span id="hud-time" class="text-cyan-400 text-lg font-mono font-bold">0.0s</span>
+                </div>
+                <button onclick="pauseGame()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                    ⏸️ 暫停
+                </button>
+            </div>
+        </div>
+
+        <div class="relative w-full max-w-4xl aspect-[16/9] bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 glow-box flex items-center justify-center">
+            <canvas id="gameCanvas" class="w-full h-full cursor-crosshair"></canvas>
+
+            <!-- Start Menu Overlay -->
+            <div id="start-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center z-20">
+                <div class="text-6xl mb-4 animate-bounce">⚡</div>
+                <h2 class="text-3xl sm:text-4xl font-black text-amber-400 mb-2 glow-text">科學特工：電流急急棒</h2>
+                <p class="text-slate-300 text-sm sm:text-base max-w-lg mb-8 leading-relaxed">
+                    拖曳金屬環順著導線前進！避開電流衝擊，通過中繼站挑戰七年級自然科隨堂考，完成終極電流挑戰！
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="startGame()" class="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black px-8 py-3.5 rounded-2xl shadow-xl transform hover:scale-105 transition text-base">
+                        🚀 開始特訓
+                    </button>
+                </div>
+            </div>
+
+            <!-- Science Question Modal Overlay -->
+            <div id="question-overlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30">
+                <div class="bg-slate-900 border border-slate-700 p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl text-center">
+                    <div class="inline-block bg-amber-500/20 text-amber-400 font-bold px-3 py-1 rounded-full text-xs mb-3">
+                        🧪 科學中繼站檢查點
+                    </div>
+                    <p id="q-text" class="text-slate-100 font-bold mb-6 text-base sm:text-lg leading-relaxed">請問植物細胞與動物細胞的主要差異在於是否有？</p>
+                    <div id="q-options" class="flex flex-col gap-3">
+                        <!-- Options injected dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pause Menu Overlay -->
+            <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center z-20">
+                <h3 class="text-2xl font-bold text-amber-400 mb-4">遊戲已暫停</h3>
+                <div class="flex flex-col gap-3 w-48">
+                    <button onclick="resumeGame()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition">繼續遊戲</button>
+                    <button onclick="restartGame()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-2.5 rounded-xl transition">重新開始</button>
+                </div>
+            </div>
+
+            <!-- Game Over / Victory Overlay -->
+            <div id="end-overlay" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center z-20">
+                <div id="end-icon" class="text-6xl mb-3">🏆</div>
+                <h2 id="end-title" class="text-3xl font-black text-amber-400 mb-2 glow-text">恭喜通關！</h2>
+                <p id="end-desc" class="text-slate-300 text-sm sm:text-base mb-6">你成功完成了所有電流急急棒挑戰！</p>
+                <div id="score-input-container" class="mb-6 hidden flex flex-col items-center gap-3 w-full max-w-xs">
+                    <input type="text" id="player-name" placeholder="輸入你的特工代號 (例如：自然小達人)" class="w-full bg-slate-900 border border-slate-700 px-4 py-2.5 rounded-xl text-sm text-center text-white focus:outline-none focus:border-amber-400">
+                    <button onclick="saveScore()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition">儲存成績到排行榜</button>
+                </div>
+                <button onclick="startGame()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-8 py-3 rounded-2xl shadow-xl transition">
+                    再次挑戰
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-4 text-xs text-slate-400 text-center max-w-2xl leading-relaxed">
+            💡 操作指引：按住黃色環圈並順著導線滑動。碰到藍色導線邊緣會觸發電流觸擊並扣除生命值！中途可收集 🛡️ 護盾道具與 ⏱️ 緩速道具！
+        </div>
+    </main>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-amber-400">🏆 特工英雄榜 (排行榜)</h3>
+                <button onclick="closeLeaderboard()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            <div id="leaderboard-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <!-- Scores injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Guide Modal -->
+    <div id="guide-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-lg w-full shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-cyan-400">📖 七年級科學急急棒說明</h3>
+                <button onclick="closeGuide()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
+                <p><strong>1. 核心玩法：</strong>以滑鼠或手指按住環圈，不能放開並順著電線從起點移動到終點。</p>
+                <p><strong>2. 障礙與扣血：</strong>偏離導線觸碰邊緣會扣除生命值（預設3條命），並產生電流Spark特效與音效。</p>
+                <p><strong>3. 科學隨堂考：</strong>每通過一關（共4關），會彈出國中七年級自然科題目，答對可獲得生命獎勵或額外加分！</p>
+                <p><strong>4. 特殊道具：</strong>軌道上隨機出現 🛡️ 護盾（抵擋一次觸電）與 ⏱️ 緩速（讓動態障礙變慢）。</p>
+            </div>
+            <button onclick="closeGuide()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-2.5 rounded-xl font-bold transition">知道了</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'START'; // START, PLAYING, QUESTION, PAUSED, GAMEOVER, VICTORY
+        let currentLevel = 1;
+        let lives = 3;
+        let shieldActive = false;
+        let slowTimeActive = false;
+        let slowTimeTimer = null;
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+
+        // Player ring properties
+        let player = {
+            x: 50,
+            y: 200,
+            radius: 16,
+            isDragging: false
+        };
+
+        // Track and obstacles
+        let wirePath = [];
+        let startPoint = { x: 60, y: 250 };
+        let endPoint = { x: 740, y: 250 };
+        let obstacles = [];
+        let powerUps = [];
+        let particles = [];
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            initLevel();
+        }
+
+        window.addEventListener('resize', () => {
+            if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+                resizeCanvas();
+            }
+        });
+
+        function initLevel() {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            startPoint = { x: 70, y: h / 2 };
+            endPoint = { x: w - 70, y: h / 2 };
+
+            wirePath = [];
+            obstacles = [];
+            powerUps = [];
+
+            let segments = 80;
+            for (let i = 0; i <= segments; i++) {
+                let t = i / segments;
+                let x = startPoint.x + (endPoint.x - startPoint.x) * t;
+                let y = startPoint.y;
+
+                if (currentLevel === 1) {
+                    y += Math.sin(t * Math.PI * 3) * (h * 0.28);
+                } else if (currentLevel === 2) {
+                    y += Math.sin(t * Math.PI * 5) * (h * 0.32) + Math.cos(t * Math.PI * 2) * (h * 0.1);
+                } else if (currentLevel === 3) {
+                    y += Math.sin(t * Math.PI * 7) * (h * 0.35) * Math.sin(t * Math.PI * 2);
+                } else {
+                    // Level 4: Ultimate labyrinth wave
+                    y += Math.sin(t * Math.PI * 8) * (h * 0.36) + Math.cos(t * Math.PI * 4) * (h * 0.15);
+                }
+                wirePath.push({ x, y });
+            }
+
+            // Spawn dynamic obstacles for Level 2, 3, 4
+            if (currentLevel >= 2) {
+                obstacles.push({ tPos: 0.3, offsetAngle: 0, speed: 0.02, radius: 22 });
+                obstacles.push({ tPos: 0.7, offsetAngle: Math.PI, speed: -0.025, radius: 22 });
+            }
+            if (currentLevel >= 3) {
+                obstacles.push({ tPos: 0.5, offsetAngle: Math.PI / 2, speed: 0.03, radius: 20 });
+            }
+
+            // Spawn power-ups
+            if (Math.random() > 0.4) {
+                powerUps.push({ tPos: 0.4, type: currentLevel % 2 === 0 ? 'SHIELD' : 'SLOW', collected: false });
+            }
+
+            player.x = startPoint.x;
+            player.y = startPoint.y;
+        }
+
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'buzz') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(70, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'powerup') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }
+            } catch (e) {}
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        canvas.addEventListener('mousedown', (e) => handleStart(getCanvasCoords(e)));
+        canvas.addEventListener('mousemove', (e) => handleMove(getCanvasCoords(e)));
+        window.addEventListener('mouseup', handleEnd);
+
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(getCanvasCoords(e)); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(getCanvasCoords(e)); }, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(coords) {
+            if (gameState !== 'PLAYING') return;
+            let dist = Math.hypot(coords.x - player.x, coords.y - player.y);
+            if (dist < 45 || player.isDragging) {
+                player.isDragging = true;
+                player.x = coords.x;
+                player.y = coords.y;
+            }
+        }
+
+        let lastHitTime = 0;
+        function handleMove(coords) {
+            if (gameState !== 'PLAYING' || !player.isDragging) return;
+            player.x = coords.x;
+            player.y = coords.y;
+
+            let wireRadius = currentLevel === 1 ? 20 : (currentLevel === 2 ? 17 : 14);
+            let hit = false;
+
+            // Check wire collision
+            for (let i = 0; i < wirePath.length; i++) {
+                let pt = wirePath[i];
+                if (Math.hypot(player.x - pt.x, player.y - pt.y) < wireRadius) {
+                    hit = true;
+                    break;
+                }
+            }
+
+            // Check obstacle collision
+            for (let obs of obstacles) {
+                let idx = Math.floor(obs.tPos * wirePath.length);
+                let pt = wirePath[idx];
+                if (pt) {
+                    let ox = pt.x + Math.cos(obs.offsetAngle) * 30;
+                    let oy = pt.y + Math.sin(obs.offsetAngle) * 30;
+                    if (Math.hypot(player.x - ox, player.y - oy) < 18) {
+                        hit = true;
+                        break;
+                    }
+                }
+            }
+
+            let now = Date.now();
+            if (hit && now - lastHitTime > 900) {
+                lastHitTime = now;
+                createSparks(player.x, player.y);
+                
+                if (shieldActive) {
+                    shieldActive = false;
+                    document.getElementById('hud-shield').innerText = '無';
+                    playSound('powerup');
+                } else {
+                    lives--;
+                    playSound('buzz');
+                    updateLivesDisplay();
+                    triggerScreenShake();
+                    if (lives <= 0) gameOver();
+                }
+            }
+
+            // Check powerups
+            for (let pu of powerUps) {
+                if (!pu.collected) {
+                    let idx = Math.floor(pu.tPos * wirePath.length);
+                    let pt = wirePath[idx];
+                    if (pt && Math.hypot(player.x - pt.x, player.y - pt.y) < 25) {
+                        pu.collected = true;
+                        playSound('powerup');
+                        if (pu.type === 'SHIELD') {
+                            shieldActive = true;
+                            document.getElementById('hud-shield').innerText = '🛡️ 護盾中';
+                        } else {
+                            slowTimeActive = true;
+                            document.getElementById('hud-shield').innerText = '⏱️ 緩速中';
+                            if (slowTimeTimer) clearTimeout(slowTimeTimer);
+                            slowTimeTimer = setTimeout(() => {
+                                slowTimeActive = false;
+                                document.getElementById('hud-shield').innerText = shieldActive ? '🛡️ 護盾中' : '無';
+                            }, 5000);
+                        }
+                    }
+                }
+            }
+
+            // Check win endpoint
+            if (Math.hypot(player.x - endPoint.x, player.y - endPoint.y) < 25) {
+                player.isDragging = false;
+                triggerCheckpoint();
+            }
+        }
+
+        function handleEnd() {
+            player.isDragging = false;
+        }
+
+        function updateLivesDisplay() {
+            document.getElementById('hud-lives').innerText = '❤️'.repeat(Math.max(0, lives));
+        }
+
+        function triggerScreenShake() {
+            canvas.style.transform = `translate(${Math.random()*8-4}px, ${Math.random()*8-4}px)`;
+            setTimeout(() => { canvas.style.transform = 'none'; }, 200);
+        }
+
+        function createSparks(x, y) {
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1.0,
+                    color: '#f59e0b'
+                });
+            }
+        }
+
+        const scienceQuestions = [
+            {
+                q: "請問下列哪一項是細胞內負責產生能量（細胞的發電廠）的胞器？",
+                options: ["粒線體 (Mitochondria)", "液胞 (Vacuole)", "細胞壁 (Cell Wall)", "葉綠體 (Chloroplast)"],
+                answer: 0
+            },
+            {
+                q: "在歐姆定律中，若通過導電金屬絲的電流為 2A，電阻為 15Ω，則電壓為多少伏特？",
+                options: ["7.5 伏特", "30 伏特", "0.13 伏特", "17 伏特"],
+                answer: 1
+            },
+            {
+                q: "當水由液態變成氣態（蒸發）時，其分子的動能與排列會發生什麼變化？",
+                options: ["分子間距離變近，排列更緊密", "分子運動速率減慢", "分子間距離變大，運動更劇烈", "分子完全消失"],
+                answer: 2
+            },
+            {
+                q: "植物進行光合作用時，吸收太陽光與二氧化碳，並釋放出下列哪一種氣體？",
+                options: ["氮氣 (N2)", "一氧化碳 (CO)", "氧氣 (O2)", "氫氣 (H2)"],
+                answer: 2
+            }
+        ];
+
+        function triggerCheckpoint() {
+            playSound('success');
+            if (currentLevel < 4) {
+                gameState = 'QUESTION';
+                showScienceQuestion();
+            } else {
+                victory();
+            }
+        }
+
+        function showScienceQuestion() {
+            let qData = scienceQuestions[currentLevel - 1];
+            document.getElementById('q-text').innerText = qData.q;
+            let container = document.getElementById('q-options');
+            container.innerHTML = '';
+
+            qData.options.forEach((opt, idx) => {
+                let btn = document.createElement('button');
+                btn.className = "bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium py-3 px-5 rounded-2xl text-sm transition text-left flex items-center justify-between";
+                btn.innerHTML = `<span>${(idx + 1)}. ${opt}</span>`;
+                btn.onclick = () => answerQuestion(idx === qData.answer);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('question-overlay').classList.remove('hidden');
+        }
+
+        function answerQuestion(isCorrect) {
+            document.getElementById('question-overlay').classList.add('hidden');
+            if (isCorrect) {
+                lives = Math.min(3, lives + 1);
+                updateLivesDisplay();
+                playSound('powerup');
+            }
+            currentLevel++;
+            document.getElementById('hud-level').innerText = `第 ${currentLevel} 關 (${['', '基礎導線', '動態磁場', '能量核心', '量子迷宮'][currentLevel]})`;
+            resizeCanvas();
+            gameState = 'PLAYING';
+        }
+
+        function startGame() {
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('end-overlay').classList.add('hidden');
+            document.getElementById('question-overlay').classList.add('hidden');
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('score-input-container').classList.add('hidden');
+
+            currentLevel = 1;
+            lives = 3;
+            shieldActive = false;
+            slowTimeActive = false;
+            updateLivesDisplay();
+            document.getElementById('hud-level').innerText = '第 1 關 (基礎導線)';
+            document.getElementById('hud-shield').innerText = '無';
+
+            resizeCanvas();
+            gameState = 'PLAYING';
+            startTime = Date.now();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameState === 'PLAYING') {
+                    elapsedTime = (Date.now() - startTime) / 1000;
+                    document.getElementById('hud-time').innerText = elapsedTime.toFixed(1) + 's';
+                }
+            }, 100);
+        }
+
+        function pauseGame() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pause-overlay').classList.remove('hidden');
+            }
+        }
+
+        function resumeGame() {
+            if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pause-overlay').classList.add('hidden');
+            }
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('end-icon').innerText = '⚡';
+            document.getElementById('end-title').innerText = '觸電了！特訓失敗';
+            document.getElementById('end-desc').innerText = `你在第 ${currentLevel} 關不小心觸電，總用時: ${elapsedTime.toFixed(1)} 秒`;
+            document.getElementById('score-input-container').classList.add('hidden');
+            document.getElementById('end-overlay').classList.remove('hidden');
+        }
+
+        function victory() {
+            gameState = 'VICTORY';
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('end-icon').innerText = '🏆';
+            document.getElementById('end-title').innerText = '太神啦！完美通關！';
+            document.getElementById('end-desc').innerText = `你成功通過了所有自然科急急棒挑戰！總用時: ${elapsedTime.toFixed(1)} 秒`;
+            document.getElementById('score-input-container').classList.remove('hidden');
+            document.getElementById('end-overlay').classList.remove('hidden');
+        }
+
+        function saveScore() {
+            let nameInput = document.getElementById('player-name').value.trim() || '神秘特工';
+            let scores = JSON.parse(localStorage.getItem('buzz_wire_scores') || '[]');
+            scores.push({ name: nameInput, time: parseFloat(elapsedTime.toFixed(1)), date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => a.time - b.time);
+            localStorage.setItem('buzz_wire_scores', JSON.stringify(scores.slice(0, 10)));
+            document.getElementById('score-input-container').classList.add('hidden');
+            openLeaderboard();
+        }
+
+        function openLeaderboard() {
+            let list = document.getElementById('leaderboard-list');
+            let scores = JSON.parse(localStorage.getItem('buzz_wire_scores') || '[]');
+            list.innerHTML = '';
+            if (scores.length === 0) {
+                list.innerHTML = '<p class="text-slate-400 text-center py-4 text-sm">尚無通關紀錄，快來挑戰吧！</p>';
+            } else {
+                scores.forEach((s, idx) => {
+                    let div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-slate-800/80 px-4 py-2.5 rounded-xl text-sm";
+                    div.innerHTML = `<span class="font-bold text-slate-200">${idx+1}. ${s.name}</span><span class="text-amber-400 font-mono font-bold">${s.time}s</span>`;
+                    list.appendChild(div);
+                });
+            }
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+        }
+
+        function closeLeaderboard() { document.getElementById('leaderboard-modal').classList.add('hidden'); }
+        function openGuide() { document.getElementById('guide-modal').classList.remove('hidden'); }
+        function closeGuide() { document.getElementById('guide-modal').classList.add('hidden'); }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid background
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+            ctx.lineWidth = 1;
+            let step = 45;
+            for (let x = 0; x < canvas.width; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            if (wirePath.length > 0) {
+                let wireRadius = currentLevel === 1 ? 20 : (currentLevel === 2 ? 17 : 14);
+
+                // Update obstacles
+                let speedFactor = slowTimeActive ? 0.4 : 1.0;
+                for (let obs of obstacles) {
+                    obs.offsetAngle += obs.speed * speedFactor;
+                }
+
+                // Draw wire track glow
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = wireRadius * 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(wirePath[0].x, wirePath[0].y);
+                for (let i = 1; i < wirePath.length; i++) ctx.lineTo(wirePath[i].x, wirePath[i].y);
+                ctx.stroke();
+
+                // Draw metallic core wire
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = wireRadius * 0.6;
+                ctx.beginPath();
+                ctx.moveTo(wirePath[0].x, wirePath[0].y);
+                for (let i = 1; i < wirePath.length; i++) ctx.lineTo(wirePath[i].x, wirePath[i].y);
+                ctx.stroke();
+
+                // Draw power-ups
+                for (let pu of powerUps) {
+                    if (!pu.collected) {
+                        let idx = Math.floor(pu.tPos * wirePath.length);
+                        let pt = wirePath[idx];
+                        if (pt) {
+                            ctx.beginPath();
+                            ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+                            ctx.fillStyle = pu.type === 'SHIELD' ? '#06b6d4' : '#10b981';
+                            ctx.fill();
+                            ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+                            ctx.fillStyle = '#ffffff'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                            ctx.fillText(pu.type === 'SHIELD' ? '🛡️' : '⏱️', pt.x, pt.y);
+                        }
+                    }
+                }
+
+                // Draw obstacles
+                for (let obs of obstacles) {
+                    let idx = Math.floor(obs.tPos * wirePath.length);
+                    let pt = wirePath[idx];
+                    if (pt) {
+                        let ox = pt.x + Math.cos(obs.offsetAngle) * 30;
+                        let oy = pt.y + Math.sin(obs.offsetAngle) * 30;
+                        ctx.beginPath();
+                        ctx.arc(ox, oy, 12, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fill();
+                        ctx.lineWidth = 2; ctx.strokeStyle = '#f8fafc'; ctx.stroke();
+                        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('⚡', ox, oy);
+                    }
+                }
+
+                // Draw Start & End terminals
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath(); ctx.arc(startPoint.x, startPoint.y, 16, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('起點', startPoint.x, startPoint.y);
+
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(endPoint.x, endPoint.y, 16, 0, Math.PI * 2); ctx.fill();
+                ctx.fillText('終點', endPoint.x, endPoint.y);
+            }
+
+            if (gameState === 'PLAYING') {
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                ctx.fillStyle = shieldActive ? 'rgba(6, 182, 212, 0.4)' : 'rgba(245, 158, 11, 0.3)';
+                ctx.fill();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = shieldActive ? '#06b6d4' : '#f59e0b';
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            }
+
+            // Draw and update spark particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                p.life -= 0.04;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(245, 158, 11, ${p.life})`;
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(drawGame);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            resizeCanvas();
+            requestAnimationFrame(drawGame);
+        };
+    </script>
+</body>
+</html>
